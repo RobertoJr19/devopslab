@@ -47,6 +47,10 @@ jobs:
         - name: Checkout Repo
           uses: actions/checkout@v2
 
+        - name: New Relic License
+          run: |
+             sed -i "s/licensekey/${{ secrets.NEW_RELIC_LICENSE_KEY }}/g" Dockerfile
+
         - name: Login to Heroku Container registry
           env: 
             HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
