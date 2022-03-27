@@ -27,59 +27,63 @@ jobs:
         run: python -m unittest -v test
 
   SonarCloud:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      name: SonarCloud
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+        - name: SonarCloud Scan
+          uses: SonarSource/sonarcloud-github-action@master
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   Build:
-      needs: [UnitTest,SonarCloud]
+      needs: [UnitTest,SonarCloud ]
       name: Build
       runs-on: ubuntu-latest
       steps: 
-        - name: Checkout Repo
-          uses: actions/checkout@v2
 
-        - name: New Relic License
-          run: |
-             sed -i "s/licensekey/${{ secrets.NEW_RELIC_LICENSE_KEY }}/g" Dockerfile
+      - name: Checkout Repo
+        uses: actions/checkout@v2
 
-        - name: Login to Heroku Container registry
-          env: 
-            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-          run: heroku container:login
+      - name: New Relic License
+        run: |
+          sed -i "s/licensekey/${{ secrets.NEW_RELIC_LICENSE_KEY }}/g" Dockerfile
 
-        - name: Docker Image & Push Heroku Registry
-          env:
-            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-          run: heroku container:push -a ${{ secrets.HEROKU_APP_NAME }} web
+      - name: Login to Heroku Container registry
+        env: 
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:login
 
-        - name: Docker Login
-          env:
-            GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-          run: | 
-            echo '${{ secrets.GOOGLE_CREDENTIALS }}' > key.json
-            cat key.json | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev/
+      - name: Docker Image & Push Heroku Registry
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:push -a ${{ secrets.HEROKU_APP_NAME }} web
 
-        - name: Build Image & Push
-          env: 
-            ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
-          run: | 
-            docker build -t ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest .
-            docker push ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
-  
+      - name: Docker Login
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: | 
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > key.json
+          cat key.json | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev/
+
+      - name: Build Image & Push
+        env: 
+          ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
+        run: | 
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest .
+          docker push ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
+
   Deploy:
     needs: Build
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
       - name: Deploy Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
@@ -98,7 +102,6 @@ jobs:
           ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
         uses: 'google-github-actions/deploy-appengine@v0'
         with:
-          deliverables: '../../../app.yaml'
           image_url: ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
 
       - name: Prod Test
