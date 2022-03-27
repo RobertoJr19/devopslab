@@ -70,3 +70,21 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: heroku container:release -a ${{ secrets.HEROKU_APP_NAME }} web
+
+      - name: Auth GCP AppEngine
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+
+      - name: Deploy to App Engine
+        id: appengine
+        env: 
+          ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
+        uses: 'google-github-actions/deploy-appengine@v0'
+        with:
+          image_url: ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
+
+      - name: Prod Test
+        run: 'curl "${{ steps.appengine.outputs.url }}"'
