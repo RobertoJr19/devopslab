@@ -98,6 +98,7 @@ jobs:
           ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
         uses: 'google-github-actions/deploy-appengine@v0'
         with:
+          deliverables: 'app.yaml'
           image_url: ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
 
       - name: Prod Test
