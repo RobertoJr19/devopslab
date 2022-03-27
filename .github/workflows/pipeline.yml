@@ -60,6 +60,20 @@ jobs:
           env:
             HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           run: heroku container:push -a ${{ secrets.HEROKU_APP_NAME }} web
+
+        - name: Docker Login
+          env:
+            GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          run: | 
+            echo '${{ secrets.GOOGLE_CREDENTIALS }}' > key.json
+            cat key.json | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev/
+
+        - name: Build Image & Push
+          env: 
+            ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
+          run: | 
+            docker build -t ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest .
+            docker push ${{ secrets.ARTIFACT_REGISTRY }}/myapp:latest
   
   Deploy:
     needs: Build
